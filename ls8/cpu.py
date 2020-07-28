@@ -1,6 +1,7 @@
 """CPU functionality."""
 import sys
 
+
 class CPU:
 
     """Construct a new CPU."""
@@ -22,9 +23,15 @@ class CPU:
             "LDI":      0b10000010,     
             "CALL":     0b01010000,     
             "ADD":      0b10100000,
-            "MUL":      0b10100010
+            "SUB":      0b10100001,
+            "DIV":      0b10100011,
+            "MOD":      0b10100100,
+            "MUL":      0b10100010,
+            "PUSH":      0b01000101,
+            "POP":       0b01000110
         }
-
+        
+        self.sp = 7
         self.command = command
  
     def ram_read(self, MAR):
@@ -44,7 +51,7 @@ class CPU:
         program = []
         
         # Open up our .lse file..
-        with open("examples/mult.ls8") as f:
+        with open(f"examples/{self.command}") as f:
             # save each line
             _code = f.readlines()
             # create a list to hold the instructions we will find
@@ -88,6 +95,8 @@ class CPU:
             self.reg[reg_a] *= self.reg[reg_b]
         elif op == "DIV":
             self.reg[reg_a] /= self.reg[reg_b]
+        elif op == "MOD":
+            self.reg[reg_a] %= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -132,7 +141,6 @@ class CPU:
                 ## Needing to know the the information of 
                 ## 2 different bytes this command needs 
                 ## to increment the process counter by 2 when it resolves
-
                 if command == self.COMMANDS["LDI"]:
                     # save to the register with the index
                     # corrispoding to this process + 1
@@ -161,14 +169,82 @@ class CPU:
 
                     self.pc += 1
 
+                # MUL
+                ## 3 Byte
+                ## Needing to know the information of 2 other byte
+                ## the prcess counter needs to be incremented by 2
                 if command == self.COMMANDS["MUL"]:
                     _a = self.ram[self.pc + 1]
                     _b = self.ram[self.pc + 2]
 
                     self.alu("MUL",_a, _b)
                     self.pc += 2
+                
+                # ADD
+                ## 3 Byte
+                ## Needing to know the information of 2 other byte
+                ## the prcess counter needs to be incremented by 2
+                if command == self.COMMANDS["ADD"]:
+                    _a = self.ram[self.pc + 1]
+                    _b = self.ram[self.pc + 2]
 
+                    self.alu("ADD",_a, _b)
+                    self.pc += 2
+                
+                # SUB
+                ## 3 Byte
+                ## Needing to know the information of 2 other byte
+                ## the prcess counter needs to be incremented by 2
+                if command == self.COMMANDS["SUB"]:
+                    _a = self.ram[self.pc + 1]
+                    _b = self.ram[self.pc + 2]
 
+                    self.alu("SUB",_a, _b)
+                    self.pc += 2
+
+                # DIV
+                ## 3 Byte
+                ## Needing to know the information of 2 other byte
+                ## the prcess counter needs to be incremented by 2
+                if command == self.COMMANDS["DIV"]:
+                    _a = self.ram[self.pc + 1]
+                    _b = self.ram[self.pc + 2]
+
+                    self.alu("DIV",_a, _b)
+                    self.pc += 2
+
+                # MOD
+                ## 3 Byte
+                ## Needing to know the information of 2 other byte
+                ## the prcess counter needs to be incremented by 2
+                if command == self.COMMANDS["MOD"]:
+                    _a = self.ram[self.pc + 1]
+                    _b = self.ram[self.pc + 2]
+
+                    self.alu("MOD",_a, _b)
+                    self.pc += 2
+
+                if command == self.COMMANDS["PUSH"]:
+                    # self.reg[self.ram[self.pc + 1]].append(self.ram[self.pc + 1])
+                    self.reg[self.sp] -= 1
+                    old_num = self.ram[self.pc + 1]
+                    val = self.reg[old_num]
+                    address= self.reg[self.sp]
+
+                    self.ram[address] = val
+
+                    self.pc += 1
+
+                if command == self.COMMANDS["POP"]:
+                    # self.reg[self.ram[self.pc + 1]].pop()
+                    val = self.ram_read(self.reg[self.sp])
+                    self.reg[self.ram_read(self.pc + 1)]= val
+
+                    self.reg[self.sp] += 1
+                  
+                    self.pc += 1
+                    
+                
                 if command == self.COMMANDS["HLT"]:
                     running = False
 
