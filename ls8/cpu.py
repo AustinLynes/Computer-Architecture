@@ -21,7 +21,8 @@ class CPU:
             "HLT":      0b00000001,     
             "PRN":      0b01000111,     
             "LDI":      0b10000010,     
-            "CALL":     0b01010000,     
+            "CALL":     0b01010000,
+            "RET":      0b00010001,     
             "ADD":      0b10100000,
             "SUB":      0b10100001,
             "DIV":      0b10100011,
@@ -32,6 +33,7 @@ class CPU:
         }
         
         self.sp = 7
+        self.reg[7] = 0xFF
         self.command = command
  
     def ram_read(self, MAR):
@@ -135,13 +137,15 @@ class CPU:
             if self.pc <= limit:
                 # read the current command from the RAM
                 command = self.ram[self.pc]
-
+                if command == self.COMMANDS["HLT"]:
+                    running = False
+                    self.pc += 1
                 #   LDI 
                 ## 3 Byte
                 ## Needing to know the the information of 
                 ## 2 different bytes this command needs 
                 ## to increment the process counter by 2 when it resolves
-                if command == self.COMMANDS["LDI"]:
+                elif command == self.COMMANDS["LDI"]:
                     # save to the register with the index
                     # corrispoding to this process + 1
                     MAR = self.ram[self.pc + 1]
@@ -153,7 +157,7 @@ class CPU:
                 ## 2 Byte
                 ## Needing to know the information of 1 other byte
                 ## the prcess counter needs to be incremented by 1
-                if command == self.COMMANDS["PRN"]:
+                elif command == self.COMMANDS["PRN"]:
                     MAR = self.ram[self.pc + 1]
                     print(self.reg[MAR])
 
@@ -163,17 +167,34 @@ class CPU:
                 ## 2 Byte
                 ## Needing to know the information of 1 other byte
                 ## the prcess counter needs to be incremented by 1
-                if command == self.COMMANDS["CALL"]:
-                    MAR = self.ram[self.pc + 1]
-                    self.reg[MAR]
+                elif command == self.COMMANDS["CALL"]:
+                    # save the return address
+                    return_address = self.pc + 2
+                    # decrement the stack pointer
+                    self.reg[self.sp] -= 1
+                    
+                    self.ram[self.reg[self.sp]] = return_address
+                    register_num = self.ram[self.pc + 1]
+                    dest_address = self.reg[register_num]- 1
 
-                    self.pc += 1
+                    self.pc = dest_address 
 
+                elif command == self.COMMANDS["RET"]:
+                    # find the return address
+                    return_address = self.ram[self.reg[self.sp]] - 1
+                    
+                    # increment the stack pointer
+                    self.reg[self.sp] += 1
+
+                    # set the current process back to the return 
+                    # address
+
+                    self.pc = return_address 
                 # MUL
                 ## 3 Byte
                 ## Needing to know the information of 2 other byte
                 ## the prcess counter needs to be incremented by 2
-                if command == self.COMMANDS["MUL"]:
+                elif command == self.COMMANDS["MUL"]:
                     _a = self.ram[self.pc + 1]
                     _b = self.ram[self.pc + 2]
 
@@ -184,7 +205,7 @@ class CPU:
                 ## 3 Byte
                 ## Needing to know the information of 2 other byte
                 ## the prcess counter needs to be incremented by 2
-                if command == self.COMMANDS["ADD"]:
+                elif command == self.COMMANDS["ADD"]:
                     _a = self.ram[self.pc + 1]
                     _b = self.ram[self.pc + 2]
 
@@ -195,7 +216,7 @@ class CPU:
                 ## 3 Byte
                 ## Needing to know the information of 2 other byte
                 ## the prcess counter needs to be incremented by 2
-                if command == self.COMMANDS["SUB"]:
+                elif command == self.COMMANDS["SUB"]:
                     _a = self.ram[self.pc + 1]
                     _b = self.ram[self.pc + 2]
 
@@ -206,7 +227,7 @@ class CPU:
                 ## 3 Byte
                 ## Needing to know the information of 2 other byte
                 ## the prcess counter needs to be incremented by 2
-                if command == self.COMMANDS["DIV"]:
+                elif command == self.COMMANDS["DIV"]:
                     _a = self.ram[self.pc + 1]
                     _b = self.ram[self.pc + 2]
 
@@ -217,14 +238,15 @@ class CPU:
                 ## 3 Byte
                 ## Needing to know the information of 2 other byte
                 ## the prcess counter needs to be incremented by 2
-                if command == self.COMMANDS["MOD"]:
+                elif command == self.COMMANDS["MOD"]:
                     _a = self.ram[self.pc + 1]
                     _b = self.ram[self.pc + 2]
 
                     self.alu("MOD",_a, _b)
                     self.pc += 2
 
-                if command == self.COMMANDS["PUSH"]:
+                elif command == self.COMMANDS["PUSH"]:
+
                     # self.reg[self.ram[self.pc + 1]].append(self.ram[self.pc + 1])
                     self.reg[self.sp] -= 1
                     old_num = self.ram[self.pc + 1]
@@ -235,18 +257,17 @@ class CPU:
 
                     self.pc += 1
 
-                if command == self.COMMANDS["POP"]:
+                elif command == self.COMMANDS["POP"]:
                     # self.reg[self.ram[self.pc + 1]].pop()
                     val = self.ram_read(self.reg[self.sp])
                     self.reg[self.ram_read(self.pc + 1)]= val
 
                     self.reg[self.sp] += 1
-                  
+
                     self.pc += 1
                     
                 
-                if command == self.COMMANDS["HLT"]:
-                    running = False
+                
 
                 # at the end of the process increment the 
                 # process counter
