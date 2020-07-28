@@ -1,34 +1,5 @@
 """CPU functionality."""
-
 import sys
-import ctypes
-
-class Node: 
-    def __init__(self, value):
-        self.next
-        self.value = value
-
-class Stack:
-    def __init__(self):
-        self.head
-    def push(self, value):
-        # adds a new head node
-        # no head
-        new_node = Node(value)
-
-        if self.head == None:
-            self.head = new_node
-        else:
-            new_node.next = self.head
-            self.head = new_node
-
-    def pop(self):
-        # removes the head node
-        # and rearanges the pointers
-        if self.head == None:
-            return 
-        else:
-            self.head = self.head.next
 
 class CPU:
 
@@ -44,16 +15,18 @@ class CPU:
         self.pc = 0 # process counter
         self.reg = [0] * 8 # 8 slot register
         
-
+        self.COMMANDS = {
+            "NOP":      0b00000000,     
+            "HLT":      0b00000001,     
+            "PRN":      0b01000111,     
+            "LDI":      0b10000010,     
+            "CALL":     0b01010000,     
+            "ADD":      0b10100000,
+            "MUL":      0b10100010
+        }
 
         self.command = command
-    # MAR 
-    # Memory Address Register
-    #   The MAR contains the address that is being read or written to.
-
-    # MDR
-    # Memory Data Register 
-    #   The MDR contains the data that was read or the data to write. 
+ 
     def ram_read(self, MAR):
         return self.ram[MAR]
 
@@ -68,16 +41,34 @@ class CPU:
         # For now, we've just hardcoded a program:
         
         # 130 0 8 73 0 1
+        program = []
+        
+        # Open up our .lse file..
+        with open("examples/mult.ls8") as f:
+            # save each line
+            _code = f.readlines()
+            # create a list to hold the instructions we will find
+            instructions  = []
+            # for each line inside our .ls8 _code file
+            for i in _code:
+                if i[0] != "#" and len(i) > 1: 
+                    # add the first complete string found on each line... 
+                    # allows for the most basic use of comments
+                    instruction = i.split()[0]
+                    instructions.append(instruction)
+            
+            # for each instruction we found
+            for i in instructions:
+                # add it to the program.
+                # it is a string right now...
+                # so it needs to be converted to an integer... 
+                # base 2
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+                # print(i)
+                program.append(int(i, 2))
+        
+        # close the file 
+        f.close()
 
         for instruction in program:
             self.ram[address] = instruction
@@ -91,7 +82,12 @@ class CPU:
     
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+        elif op == "SUB": 
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "DIV":
+            self.reg[reg_a] /= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -117,6 +113,8 @@ class CPU:
 
     """Run the CPU."""
     def run(self):
+
+        
         IR = self.reg[self.pc]
         
         running = True
@@ -134,7 +132,8 @@ class CPU:
                 ## Needing to know the the information of 
                 ## 2 different bytes this command needs 
                 ## to increment the process counter by 2 when it resolves
-                if command == 0b10000010:
+
+                if command == self.COMMANDS["LDI"]:
                     # save to the register with the index
                     # corrispoding to this process + 1
                     MAR = self.ram[self.pc + 1]
@@ -146,14 +145,31 @@ class CPU:
                 ## 2 Byte
                 ## Needing to know the information of 1 other byte
                 ## the prcess counter needs to be incremented by 1
-                if command == 0b1000111:
+                if command == self.COMMANDS["PRN"]:
                     MAR = self.ram[self.pc + 1]
                     print(self.reg[MAR])
+
                     self.pc += 1
                 
-                #   HLT 
-                ## End the Program
-                if command == 0b1:
+                # CALL
+                ## 2 Byte
+                ## Needing to know the information of 1 other byte
+                ## the prcess counter needs to be incremented by 1
+                if command == self.COMMANDS["CALL"]:
+                    MAR = self.ram[self.pc + 1]
+                    self.reg[MAR]
+
+                    self.pc += 1
+
+                if command == self.COMMANDS["MUL"]:
+                    _a = self.ram[self.pc + 1]
+                    _b = self.ram[self.pc + 2]
+
+                    self.alu("MUL",_a, _b)
+                    self.pc += 2
+
+
+                if command == self.COMMANDS["HLT"]:
                     running = False
 
                 # at the end of the process increment the 

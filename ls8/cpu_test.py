@@ -1,6 +1,10 @@
 import unittest
 from cpu import CPU
 
+
+# I want to be able to give my CPUs RAM 
+# a List of Instructions
+
 class CPU_TEST(unittest.TestCase):
     def setUp(self):
         # initalize CPU 
@@ -14,7 +18,7 @@ class CPU_TEST(unittest.TestCase):
     def test_process_counter(self):
         self.assertEqual(self.cpu.pc, 0)
 
-    
+
     
 if __name__ == "__main__":
     unittest.main()

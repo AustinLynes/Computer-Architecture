@@ -1,0 +1,14 @@
+LDI 
+. . to reg 1
+. . APPLY 24
+
+LDI 
+. . to reg 0
+. . APPLY 10
+
+CALL
+. .  reg 1
+
+LDI 
+. . to reg 0
+. . APPLY 18
